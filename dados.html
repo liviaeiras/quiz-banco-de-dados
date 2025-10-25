@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Quiz: Aula 08 - Modelo Físico (Banco de Dados)</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--accent:#7c3aed;--muted:#94a3b8;--glass:rgba(255,255,255,0.03)}
+    *{box-sizing:border-box}
+    body{font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;min-height:100vh;margin:0;background:linear-gradient(180deg,#071426 0%,#081827 100%);color:#e6eef8;padding:28px;display:flex;align-items:center;justify-content:center}
+    .wrap{width:100%;max-width:980px}
+    header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+    h1{font-size:20px;margin:0}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:20px;box-shadow:0 6px 22px rgba(0,0,0,0.6);}
+    .question{padding:14px;border-radius:10px;background:var(--glass);margin-bottom:12px}
+    .q-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .q-num{font-weight:700;color:var(--accent)}
+    .options{display:grid;gap:10px;margin-top:10px}
+    .opt{background:rgba(255,255,255,0.02);padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);cursor:pointer}
+    .opt:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,0.5)}
+    .opt.correct{border-color:rgba(34,197,94,0.9);background:rgba(34,197,94,0.06)}
+    .opt.wrong{border-color:rgba(239,68,68,0.9);background:rgba(239,68,68,0.05)}
+    .explain{margin-top:10px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);color:var(--muted);display:none}
+    .controls{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:14px}
+    button{background:var(--accent);border:none;color:white;padding:10px 14px;border-radius:8px;cursor:pointer}
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+    .progress{height:10px;background:rgba(255,255,255,0.03);border-radius:999px;overflow:hidden}
+    .progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#a78bfa);width:0%}
+    .summary{display:none;margin-top:12px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.02)}
+    .meta{font-size:13px;color:var(--muted)}
+    @media(max-width:640px){.lead{display:none}} 
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Quiz: Aula 08 — Modelo Físico &amp; SQL</h1>
+        <p class="lead">Responda as questões para revisar: feedback imediato e explicações. Use o botão "Próxima" para avançar.</p>
+      </div>
+      <div style="margin-left:auto;text-align:right">
+        <div class="meta">20 perguntas • feedback imediato • compatível com estudo</div>
+      </div>
+    </header>
+
+    <div class="card" id="card">
+      <!-- dynamic content -->
+    </div>
+
+    <div style="height:10px"></div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="progress" aria-hidden><i id="prog"></i></div>
+      <div class="controls">
+        <div class="meta" id="status">Pergunta <strong id="cur">1</strong> de <strong id="total">20</strong></div>
+        <div>
+          <button id="prev" class="ghost">Anterior</button>
+          <button id="next">Próxima</button>
+          <button id="restart" class="ghost">Reiniciar</button>
+        </div>
+      </div>
+      <div class="summary" id="summary"></div>
+    </div>
+  </div>
+
+<script>
+const questions = [
+  {q:"O que é uma linguagem de consulta em banco de dados?",opts:["Um sistema de armazenamento de arquivos.","Um conjunto de comandos usados para interagir com o banco de dados.","Um programa que gera relatórios automaticamente.","Uma ferramenta gráfica de modelagem."],a:1,exp:"É o conjunto de comandos e sintaxes para criar, consultar e manipular dados e estruturas no banco."},
+  {q:"Qual a diferença principal entre linguagem procedural e não-procedural?",opts:["Procedural diz o que fazer; não-procedural diz como fazer.","Procedural diz como fazer; não-procedural diz o que fazer.","Ambas são idênticas.","Procedural é usada apenas em Python."],a:1,exp:"Procedural exige descrever o passo a passo; não-procedural (declarativa) descreve o resultado e deixa o SGBD otimizar o caminho."},
+  {q:"Quem criou o SQL e em que década surgiu?",opts:["Bill Gates, anos 80","Donald D. Chamberlin e Raymond F. Boyce, anos 70","Linus Torvalds, anos 90","Edgar F. Codd, anos 2000"],a:1,exp:"Chamberlin e Boyce (IBM) criaram a SEQUEL/SQL nos anos 1970, inspirado nas ideias de Codd."},
+  {q:"O que significa ACID?",opts:["Atomicidade, Consistência, Isolamento, Durabilidade","Acesso, Controle, Integridade, Dados","Atualização, Consistência, Inovação, Dados","Atomicidade, Correção, Integridade, Durabilidade"],a:0,exp:"ACID garante propriedades fundamentais das transações: tudo ou nada, manter regras, isolar e persistir alterações."},
+  {q:"No contexto de transações, o que é Atomicidade?",opts:["Permitir operações simultâneas","Executar apenas parte da transação","Tudo ou nada — se uma falhar, tudo é revertido","Repetir a transação até dar certo"],a:2,exp:"Atomicidade garante que a transação só é confirmada se todas as etapas ocorrerem com sucesso; caso contrário, rollback."},
+  {q:"Qual comando cria um novo banco de dados?",opts:["CREATE TABLE","CREATE DATABASE","NEW DATABASE","INIT DB"],a:1,exp:"CREATE DATABASE nome; cria o banco no SGBD."},
+  {q:"Qual comando escolhe o banco ativo para trabalhar?",opts:["SELECT DATABASE","USE nome_do_banco","SET DATABASE","OPEN DATABASE"],a:1,exp:"USE nome_do_banco; define o banco atual para os próximos comandos."},
+  {q:"Assinale os grupos de comandos SQL que tratam de criação, manipulação e controle de transações, respectivamente:",opts:["DDL, DML, TCL","DML, DDL, DCL","DQL, DML, DDL","TCL, DML, DDL"],a:0,exp:"DDL (definição), DML (manipulação de dados) e TCL (controle de transação)."},
+  {q:"Qual tipo de dado é melhor para texto longo em MySQL?",opts:["INT","VARCHAR(10)","DATE","TEXT"],a:3,exp:"TEXT armazena textos longos; VARCHAR é limitado pelo número especificado."},
+  {q:"Qual a função de PRIMARY KEY?",opts:["Permitir valores nulos","Definir valor padrão","Impedir duplicidade e nulos","Verificar condições"],a:2,exp:"PRIMARY KEY garante unicidade e não-nulidade no identificador da tabela."},
+  {q:"O que faz o comando SHOW TABLES?",opts:["Mostra bancos de dados","Lista tabelas do banco atual","Cria tabelas","Apaga tabelas"],a:1,exp:"SHOW TABLES; retorna as tabelas existentes no banco selecionado."},
+  {q:"Qual comando altera a estrutura de uma tabela existente?",opts:["UPDATE TABLE","ALTER TABLE","CHANGE TABLE","MODIFY DATABASE"],a:1,exp:"ALTER TABLE permite adicionar, modificar ou excluir colunas e constraints."},
+  {q:"Qual comando exclui permanentemente uma tabela ou banco?",opts:["REMOVE","DELETE","DROP","ERASE"],a:2,exp:"DROP TABLE nome; ou DROP DATABASE nome; remove o objeto do banco."},
+  {q:"O que faz a restrição CHECK em uma coluna?",opts:["Gera um índice","Impõe uma condição lógica para valores","Define valor padrão","Cria chave estrangeira"],a:1,exp:"CHECK(expr) valida que os valores atendam à condição informada."},
+  {q:"Auto_increment em MySQL é usado para:",opts:["Gerar datas automáticas","Gerar números sequenciais para uma coluna","Garantir unicidade textual","Indexar automaticamente"],a:1,exp:"AUTO_INCREMENT incrementa automaticamente valores numéricos (geralmente usado em chaves primárias)."},
+  {q:"SHOW CREATE TABLE tabela; retorna:",opts:["As linhas da tabela","O SQL usado para criar a tabela","O tamanho da tabela","Os dados da tabela"],a:1,exp:"SHOW CREATE TABLE mostra o comando completo CREATE TABLE que cria aquela tabela (útil para migração)."},
+  {q:"Qual característica NÃO é típica do MySQL?",opts:["Suporte a múltiplos usuários","Case-insensitive em palavras-chave","Não suporta transações de jeito nenhum","Extensibilidade por plugins"],a:2,exp:"MySQL suporta transações (principalmente com InnoDB)."},
+  {q:"Em design de banco, qual é o primeiro passo para transformar requisitos em estrutura?",opts:["Criar consultas SELECT","Montar diagrama Entidade-Relacionamento (ER)","Fazer backup","Criar índices"],a:1,exp:"O diagrama ER modela entidades, atributos e relacionamentos antes de gerar o modelo lógico."},
+  {q:"O que é uma transação em banco de dados?",opts:["Uma única consulta SELECT","Um conjunto de operações que devem ocorrer como unidade","A criação de uma tabela","Um tipo de índice"],a:1,exp:"Transação agrupa várias operações sob ACID para garantir integridade."}
+];
+
+let cur = 0; let score = 0; const total = questions.length;
+const card = document.getElementById('card'); const prog = document.getElementById('prog'); const curEl = document.getElementById('cur'); const totalEl = document.getElementById('total'); const summary = document.getElementById('summary');
+
+function render(){
+  const item = questions[cur];
+  card.innerHTML = '';
+  const qBox = document.createElement('div'); qBox.className='question';
+  const head = document.createElement('div'); head.className='q-head';
+  head.innerHTML = `<div><div class="q-num">Pergunta ${cur+1}</div><div style="font-weight:600;margin-top:6px">${item.q}</div></div>`;
+  qBox.appendChild(head);
+
+  const opts = document.createElement('div'); opts.className='options';
+  item.opts.forEach((o,i)=>{
+    const b = document.createElement('button'); b.className='opt'; b.type='button'; b.innerText = String.fromCharCode(65+i)+") "+o;
+    b.addEventListener('click',()=>select(b,i));
+    opts.appendChild(b);
+  });
+  qBox.appendChild(opts);
+
+  const expl = document.createElement('div'); expl.className='explain'; expl.id='exp'; expl.innerText = item.exp;
+  qBox.appendChild(expl);
+  card.appendChild(qBox);
+
+  curEl.innerText = cur+1; totalEl.innerText = total; prog.style.width = ((cur)/total*100) + '%';
+}
+
+function select(btn, index){
+  // prevent double-click
+  if(btn.disabled) return;
+  const item = questions[cur];
+  const buttons = Array.from(document.querySelectorAll('.opt'));
+  buttons.forEach(b=>b.disabled=true);
+  const correctIndex = item.a;
+  if(index===correctIndex){
+    btn.classList.add('correct'); score++;
+  } else {
+    btn.classList.add('wrong');
+    // highlight correct
+    buttons[correctIndex].classList.add('correct');
+  }
+  document.getElementById('exp').style.display='block';
+}
+
+document.getElementById('next').addEventListener('click',()=>{
+  if(cur < total-1){ cur++; render(); }
+  else finish();
+});
+
+document.getElementById('prev').addEventListener('click',()=>{
+  if(cur>0){ cur--; render(); }
+});
+
+document.getElementById('restart').addEventListener('click',()=>{
+  cur=0; score=0; summary.style.display='none'; render(); prog.style.width='0%';
+});
+
+function finish(){
+  prog.style.width = '100%';
+  summary.style.display='block';
+  summary.innerHTML = `<strong>Resultado:</strong> ${score} de ${total} acertos.<br><div style="margin-top:8px;color:var(--muted)">Você pode revisar as explicações em cada pergunta navegando com "Anterior" / "Próxima".</div>`;
+}
+
+// initialize
+render();
+</script>
+</body>
+</html>
